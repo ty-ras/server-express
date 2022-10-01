@@ -8,3 +8,4 @@ The protocol specification is checked both at compile-time and run-time to verif
 This all is done in such way that it does not make development tedious or boring, but instead robust and fun!
 
 This particular repository contains [ExpressJS HTTP server](https://expressjs.com) related library, which is designed to be consumed by users of TyRAS:
+- [server](./server) library exposes `createMiddleware` function to create ExpressJS middleware which will serve given TyRAS `AppEndpoint`s.
