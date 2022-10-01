@@ -8,7 +8,7 @@ export const getStateFromContext: server.GetStateFromContext<ctx.HKTContext> = (
 ) => state.doGetStateFromContext(ctx);
 
 // This is meant to be used by middleware occurring before the actual REST API.
-export const modifyState = <TState extends Record<string, unknown>>(
+export const modifyState = <TState extends object>(
   res: express.Response<unknown, TState>,
   modify: (state: TState) => void,
 ) => {

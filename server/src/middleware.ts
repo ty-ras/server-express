@@ -5,7 +5,7 @@ import * as ctx from "./context-types";
 import type * as express from "express";
 
 // Using given various endpoints, create ExpressJS middlewares.
-export const createMiddleware = <TState extends Record<string, unknown>>(
+export const createMiddleware = <TState>(
   endpoints: Array<
     ep.AppEndpoint<ctx.Context<TState>, Record<string, unknown>>
   >,
@@ -17,7 +17,8 @@ export const createMiddleware = <TState extends Record<string, unknown>>(
 // I guess Express typings are lagging behind or something.
 ((
   req: express.Request,
-  res: express.Response<unknown, TState>,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  res: express.Response<unknown, TState extends object ? TState : {}>,
 ) => Promise<unknown>) => {
   // Combine given endpoints into top-level entrypoint
   const regExpAndHandler = prefix
@@ -34,7 +35,7 @@ export const createMiddleware = <TState extends Record<string, unknown>>(
       events,
       {
         getURL: ({ req }) => req.originalUrl,
-        getState: ({ res }) => res.locals,
+        getState: ({ res }) => res.locals as unknown as TState,
         getMethod: ({ req }) => req.method,
         getHeader: ({ req }, headerName) => req.get(headerName),
         getRequestBody: ({ req }) => req,

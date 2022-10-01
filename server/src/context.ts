@@ -3,9 +3,7 @@ import * as state from "./state-internal";
 import type * as ctx from "./context-types";
 
 export interface HKTContext extends server.HKTContext {
-  readonly type: ctx.Context<
-    this["_TState"] extends Record<string, unknown> ? this["_TState"] : never
-  >;
+  readonly type: ctx.Context<this["_TState"]>;
 }
 
 export const validateContextState: server.ContextValidatorFactory<

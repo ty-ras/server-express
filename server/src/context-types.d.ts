@@ -1,6 +1,7 @@
 import type * as express from "express";
 
-export type Context<T extends Record<string, unknown>> = {
+export type Context<T> = {
   req: express.Request;
-  res: express.Response<unknown, T>;
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  res: express.Response<unknown, T extends object ? T : {}>;
 };
