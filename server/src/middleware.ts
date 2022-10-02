@@ -1,12 +1,13 @@
 import * as ep from "@ty-ras/endpoint";
 import * as prefix from "@ty-ras/endpoint-prefix";
 import * as server from "@ty-ras/server";
-import * as ctx from "./context-types";
+import type * as ctx from "./context";
 import type * as express from "express";
+import * as stream from "stream";
 
 // Using given various endpoints, create ExpressJS middlewares.
 export const createMiddleware = <TState>(
-  endpoints: Array<
+  endpoints: ReadonlyArray<
     ep.AppEndpoint<ctx.Context<TState>, Record<string, unknown>>
   >,
   events:
@@ -48,8 +49,12 @@ export const createMiddleware = <TState>(
             res.send(undefined);
           }
         },
-        sendContent: ({ res }, content) => {
-          res.send(content);
+        sendContent: async ({ res }, content) => {
+          if (content instanceof stream.Readable) {
+            await stream.promises.pipeline(content, res);
+          } else {
+            res.send(content);
+          }
         },
       },
     );
