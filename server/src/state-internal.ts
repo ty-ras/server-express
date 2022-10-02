@@ -1,4 +1,4 @@
-import type * as ctx from "./context-types";
+import type * as ctx from "./context";
 import type * as express from "express";
 
 export const doGetStateFromContext = <T>({ res }: ctx.Context<T>) =>
