@@ -1,62 +1,53 @@
-import * as ep from "@ty-ras/endpoint";
-import * as prefix from "@ty-ras/endpoint-prefix";
-import * as server from "@ty-ras/server";
-import type * as ctx from "./context";
-import type * as express from "express";
-import * as stream from "stream";
+/**
+ * @file This file contains helper function to create Express middleware callback.
+ */
 
-// Using given various endpoints, create ExpressJS middlewares.
-export const createMiddleware = <TState>(
-  endpoints: ReadonlyArray<
-    ep.AppEndpoint<ctx.Context<TState>, Record<string, unknown>>
+import * as ep from "@ty-ras/endpoint";
+import * as server from "@ty-ras/server";
+import type * as express from "express";
+import type * as context from "./context.types";
+import * as internal from "./internal";
+
+/**
+ * Creates a new {@link express.Middleware} to server the given TyRAS {@link ep.AppEndpoint}s.
+ * @param endpoints The TyRAS {@link ep.AppEndpoint}s to serve through this Koa middleware.
+ * @param createState The optional callback to create state for the endpoints.
+ * @param events The optional {@link server.ServerEventHandler} callback to observe server events.
+ * @returns The Koa middleware which will serve the given endpoints.
+ */
+export const createMiddleware = <TStateInfo>(
+  endpoints: ReadonlyArray<ep.AppEndpoint<context.ServerContext, TStateInfo>>,
+  createState?: context.CreateState<TStateInfo>,
+  events?: server.ServerEventHandler<
+    server.GetContext<context.ServerContext>,
+    TStateInfo
   >,
-  events:
-    | server.ServerEventEmitter<ctx.Context<TState>, TState>
-    | undefined = undefined,
-): // Notice that we must use this explicit form
-// If we use express.RequestHandler, we will get an error because of asyncness.
-// I guess Express typings are lagging behind or something.
-((
-  req: express.Request,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  res: express.Response<unknown, TState extends object ? TState : {}>,
-) => Promise<unknown>) => {
-  // Combine given endpoints into top-level entrypoint
-  const regExpAndHandler = prefix
-    .atPrefix("", ...endpoints)
-    .getRegExpAndHandler("");
-  // Return Koa middleware handler factory
-  return async (req, res) => {
-    await server.typicalServerFlow(
-      {
-        req,
-        res,
-      },
-      regExpAndHandler,
-      events,
-      {
-        getURL: ({ req }) => req.originalUrl,
-        getState: ({ res }) => res.locals as unknown as TState,
-        getMethod: ({ req }) => req.method,
-        getHeader: ({ req }, headerName) => req.get(headerName),
-        getRequestBody: ({ req }) => req,
-        setHeader: ({ res }, headerName, headerValue) =>
-          res.set(headerName, headerValue),
-        setStatusCode: ({ res }, statusCode, willCallSendContent) => {
-          res.status(statusCode);
-          if (!willCallSendContent) {
-            // Otherwise server becomes stuck
-            res.send(undefined);
-          }
-        },
-        sendContent: async ({ res }, content) => {
-          if (content instanceof stream.Readable) {
-            await stream.promises.pipeline(content, res);
-          } else {
-            res.send(content);
-          }
-        },
-      },
-    );
-  };
+): express.RequestHandler => {
+  const flow = server.createTypicalServerFlow(
+    endpoints,
+    {
+      ...internal.staticCallbacks,
+      getState: async (ctx, stateInfo) =>
+        await createState?.({ context: ctx, stateInfo }),
+    },
+    events,
+  );
+  return asyncToVoid(
+    async (req: express.Request, res: express.Response) =>
+      await flow({ req, res }),
+  );
 };
+
+/**
+ * Helper method to convert Promise-utilizing asynchronous callbacks to `void`-returning callbacks, used by many places in Node.
+ * @param asyncCallback The Promise-utilizing asynchronous callback.
+ * @returns The callback which loses Promise and returns `void`.
+ */
+const asyncToVoid =
+  <TCallback extends (...args: Array<any>) => Promise<any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
+    asyncCallback: TCallback,
+  ): ((...args: Parameters<typeof asyncCallback>) => void) =>
+  (...args) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    void asyncCallback(...args);
+  };
