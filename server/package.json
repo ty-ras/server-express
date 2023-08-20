@@ -1,6 +1,6 @@
 {
   "name": "@ty-ras/server-express",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": {
     "name": "Stanislav Muhametsin",
     "email": "346799+stazz@users.noreply.github.com",
@@ -34,8 +34,7 @@
     "@ty-ras/server": "^2.0.0"
   },
   "peerDependencies": {
-    "express": "^4.18.2",
-    "http2-express-bridge": "^1.0.7"
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "@ava/get-port": "2.0.0",
